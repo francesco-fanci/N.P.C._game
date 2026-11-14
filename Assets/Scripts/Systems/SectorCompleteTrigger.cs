@@ -1,9 +1,6 @@
+// N.P.C. (Null Pointer Character) - End of level trigger, displays sector escaped banner
 using UnityEngine;
 
-/// <summary>
-/// Trigger volume placed at the exit of a sector (e.g. Backstage ledge of Level 1).
-/// Displays the victory / sector escape banner on the HUD and updates the checkpoint.
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public class SectorCompleteTrigger : MonoBehaviour
 {
@@ -17,7 +14,10 @@ public class SectorCompleteTrigger : MonoBehaviour
     private void Awake()
     {
         Collider col = GetComponent<Collider>();
-        if (col != null) col.isTrigger = true;
+        if (col != null)
+        {
+            col.isTrigger = true;
+        }
     }
 
     private void OnTriggerEnter(Collider other)
@@ -28,16 +28,16 @@ public class SectorCompleteTrigger : MonoBehaviour
         {
             _triggered = true;
 
-            Debug.Log("<color=green><b>[N.P.C.] *** SECTOR 01 COMPLETED! ***</b></color>");
+            Debug.Log("[N.P.C.] Sector 01 completed!");
 
-            // Show HUD victory banner
+            // Display victory banner and update objective in HUD
             if (HUDManager.Instance != null)
             {
                 HUDManager.Instance.ShowSectorComplete(_bannerText);
                 HUDManager.Instance.SetObjective("SECTOR 01 COMPLETE: Unallocated backstage reached. Proceed to Sector 02.");
             }
 
-            // Set new checkpoint on the backstage platform
+            // Save checkpoint on the exit platform
             if (CheckpointManager.Instance != null)
             {
                 CheckpointManager.Instance.SetCheckpoint(transform.position + Vector3.up * 1f, transform.rotation);

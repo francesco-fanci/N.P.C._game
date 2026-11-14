@@ -1,27 +1,11 @@
+// N.P.C. (Null Pointer Character) - Third-person orbital camera with collision
 using UnityEngine;
 
-/// <summary>
-/// 3rd-person orbital camera for "N.P.C. (Null Pointer Character)".
-/// Lives on its own GameObject (NOT parented to the player) and follows
-/// the player each frame while orbiting via mouse input.
-/// Performs a basic collision raycast so the camera pulls forward when
-/// geometry is between it and the player — but intentionally does NOT
-/// fight wall clipping too aggressively so the player can peek through
-/// backface-culled hollow geometry (a deliberate design choice).
-/// </summary>
 public class PlayerCamera : MonoBehaviour
 {
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Target
-    // ─────────────────────────────────────────────────────────────────
-
     [Header("Target")]
     [SerializeField, Tooltip("The player Transform this camera orbits around.")]
     private Transform _target;
-
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Orbit
-    // ─────────────────────────────────────────────────────────────────
 
     [Header("Orbit")]
     [SerializeField, Tooltip("Mouse look sensitivity.")]
@@ -33,20 +17,12 @@ public class PlayerCamera : MonoBehaviour
     [SerializeField, Tooltip("Maximum vertical angle (looking down towards ground).")]
     private float _maxVerticalAngle = 70f;
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Framing
-    // ─────────────────────────────────────────────────────────────────
-
     [Header("Framing")]
     [SerializeField, Tooltip("Default distance from the player pivot.")]
     private float _distance = 3.5f;
 
     [SerializeField, Tooltip("Height offset above the player pivot (shoulder height).")]
     private float _heightOffset = 1.5f;
-
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Collision
-    // ─────────────────────────────────────────────────────────────────
 
     [Header("Collision")]
     [SerializeField, Tooltip("Layers that can block the camera line-of-sight.")]
@@ -58,25 +34,13 @@ public class PlayerCamera : MonoBehaviour
     [SerializeField, Tooltip("Radius of the SphereCast used for camera collision.")]
     private float _collisionRadius = 0.15f;
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Smoothing
-    // ─────────────────────────────────────────────────────────────────
-
     [Header("Smoothing")]
     [SerializeField, Tooltip("How quickly the camera recovers its full distance after a collision pull-in.")]
     private float _distanceRecoverySpeed = 8f;
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Private State
-    // ─────────────────────────────────────────────────────────────────
-
     private float _yaw;
     private float _pitch;
     private float _currentDistance;
-
-    // ─────────────────────────────────────────────────────────────────
-    //  Unity Lifecycle
-    // ─────────────────────────────────────────────────────────────────
 
     private void Awake()
     {
@@ -106,11 +70,11 @@ public class PlayerCamera : MonoBehaviour
 
     private void Start()
     {
-        // Lock and hide cursor by default
+        // Lock and hide cursor
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        // Initialise yaw from the camera's current facing so it doesn't snap on Start
+        // Start from the camera's current facing so it doesn't snap
         Vector3 angles = transform.eulerAngles;
         _yaw = angles.y;
         _pitch = angles.x;
@@ -127,13 +91,7 @@ public class PlayerCamera : MonoBehaviour
         UpdateCameraPosition();
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Rotation
-    // ─────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Reads mouse axes and updates yaw / pitch with clamping.
-    /// </summary>
+    // Reads mouse input and updates yaw/pitch with clamping
     private void HandleRotationInput()
     {
         // Only process mouse input when the cursor is locked
@@ -148,14 +106,7 @@ public class PlayerCamera : MonoBehaviour
         _pitch = Mathf.Clamp(_pitch, _minVerticalAngle, _maxVerticalAngle);
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Positioning & Collision
-    // ─────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Calculates the desired camera position from the orbit parameters,
-    /// performs a collision check, and places the camera.
-    /// </summary>
+    // Calculates orbit position, checks for collision, and places the camera
     private void UpdateCameraPosition()
     {
         // Pivot point: player position + height offset
@@ -166,7 +117,7 @@ public class PlayerCamera : MonoBehaviour
         Vector3 desiredOffset = rotation * Vector3.back * _distance;
         Vector3 desiredPosition = pivot + desiredOffset;
 
-        // ── Collision ────────────────────────────────────────────────
+        // Collision check — pull camera forward if something is in the way
         float desiredDist = _distance;
         Vector3 directionFromPivot = (desiredPosition - pivot).normalized;
         float castDistance = _distance;
@@ -175,7 +126,6 @@ public class PlayerCamera : MonoBehaviour
                                out RaycastHit hit, castDistance, _collisionLayers,
                                QueryTriggerInteraction.Ignore))
         {
-            // Pull the camera in front of the hit point
             desiredDist = Mathf.Max(hit.distance - _collisionPadding, 0.1f);
         }
 
@@ -183,7 +133,7 @@ public class PlayerCamera : MonoBehaviour
         _currentDistance = Mathf.MoveTowards(_currentDistance, desiredDist,
                                               _distanceRecoverySpeed * Time.deltaTime);
 
-        // If the collision is closer than current, snap immediately (don't clip through)
+        // If the collision is closer than current, snap immediately so we don't clip through
         if (desiredDist < _currentDistance)
         {
             _currentDistance = desiredDist;

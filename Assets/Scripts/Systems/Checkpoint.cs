@@ -1,17 +1,11 @@
+// N.P.C. (Null Pointer Character) - Checkpoint trigger zone for player respawning
 using UnityEngine;
 
-/// <summary>
-/// Individual checkpoint trigger zone. When the player enters the collider,
-/// this checkpoint becomes the active respawn point via <see cref="CheckpointManager"/>.
-/// Requires a Collider set to <c>isTrigger = true</c>.
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public class Checkpoint : MonoBehaviour
 {
-    // ───────────────────────── Inspector Fields ─────────────────────────
-
     [Header("Spawn Settings")]
-    [SerializeField, Tooltip("Vertical offset added to this transform's position when respawning the player (avoids ground clipping).")]
+    [SerializeField, Tooltip("Vertical offset added when respawning the player to avoid clipping.")]
     private Vector3 _spawnOffset = new Vector3(0f, 1f, 0f);
 
     [Header("Detection")]
@@ -19,69 +13,53 @@ public class Checkpoint : MonoBehaviour
     private string _playerTag = "Player";
 
     [Header("Visual Feedback")]
-    [SerializeField, Tooltip("(Optional) Renderer whose material color changes on activation.")]
+    [SerializeField, Tooltip("Optional renderer whose material color changes on activation.")]
     private Renderer _flagRenderer;
 
-    [SerializeField, Tooltip("Color applied to the flag renderer when this checkpoint is activated.")]
+    [SerializeField, Tooltip("Color applied to the renderer when this checkpoint is activated.")]
     private Color _activatedColor = Color.green;
 
-    [SerializeField, Tooltip("(Optional) Particle system played on activation.")]
+    [SerializeField, Tooltip("Optional particle system played on activation.")]
     private ParticleSystem _activationVFX;
 
-    // ───────────────────────── Runtime State ────────────────────────────
+    private bool _isActivated = false;
 
-    private bool _isActivated;
+    public bool IsActivated
+    {
+        get { return _isActivated; }
+    }
 
-    // ───────────────────────── Public Properties ────────────────────────
-
-    /// <summary>Whether this checkpoint has already been activated.</summary>
-    public bool IsActivated => _isActivated;
-
-    /// <summary>The effective respawn position (transform position + spawn offset).</summary>
-    public Vector3 SpawnPosition => transform.position + _spawnOffset;
-
-    // ───────────────────────── Unity Callbacks ──────────────────────────
+    public Vector3 SpawnPosition
+    {
+        get { return transform.position + _spawnOffset; }
+    }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (_isActivated)
-            return;
+        if (_isActivated) return;
 
-        if (!other.CompareTag(_playerTag))
-            return;
-
-        Activate();
+        if (other.CompareTag(_playerTag) || other.GetComponent<PlayerController>() != null)
+        {
+            Activate();
+        }
     }
 
-    // ───────────────────────── Internals ─────────────────────────────────
-
-    /// <summary>Register this checkpoint and play feedback.</summary>
     private void Activate()
     {
         _isActivated = true;
 
-        // Register with the manager.
+        // Save this checkpoint as the current active respawn point
         if (CheckpointManager.Instance != null)
         {
             CheckpointManager.Instance.SetCheckpoint(SpawnPosition, transform.rotation);
         }
-        else
-        {
-            Debug.LogWarning("[Checkpoint] CheckpointManager.Instance is null — checkpoint not registered.");
-        }
 
-        // Visual feedback: change material color.
+        // Change color to indicate it is active
         if (_flagRenderer != null)
         {
-            // Use a property block so we don't create a material instance leak.
-            MaterialPropertyBlock block = new MaterialPropertyBlock();
-            _flagRenderer.GetPropertyBlock(block);
-            block.SetColor("_BaseColor", _activatedColor);   // URP Lit shader property
-            block.SetColor("_Color", _activatedColor);        // Fallback / legacy property
-            _flagRenderer.SetPropertyBlock(block);
+            _flagRenderer.material.color = _activatedColor;
         }
 
-        // Visual feedback: particle burst.
         if (_activationVFX != null)
         {
             _activationVFX.Play();
@@ -90,15 +68,11 @@ public class Checkpoint : MonoBehaviour
         Debug.Log($"[Checkpoint] \"{gameObject.name}\" activated.");
     }
 
-#if UNITY_EDITOR
-    // ───────────────────────── Editor Gizmos ────────────────────────────
-
     private void OnDrawGizmos()
     {
-        // Draw the spawn point so designers can see where the player will appear.
+        // Visual helper in Scene view
         Gizmos.color = _isActivated ? Color.green : Color.yellow;
         Gizmos.DrawWireSphere(SpawnPosition, 0.35f);
         Gizmos.DrawLine(transform.position, SpawnPosition);
     }
-#endif
 }

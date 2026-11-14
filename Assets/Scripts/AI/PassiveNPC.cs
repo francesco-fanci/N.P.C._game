@@ -1,11 +1,6 @@
+// N.P.C. (Null Pointer Character) - Passive NPC that shows corrupted dialogue when spoken to
 using UnityEngine;
 
-/// <summary>
-/// A static NPC that loops an idle animation/state.
-/// When the player approaches and presses E, displays a corrupted dialogue box:
-/// "Error 404: DialogueString Missing [Uncaught NullPointerException]".
-/// As specified in GDD section 5.2 / NPC Logic Flow.
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public class PassiveNPC : MonoBehaviour
 {
@@ -44,10 +39,13 @@ public class PassiveNPC : MonoBehaviour
         if (other.CompareTag("Player") || other.GetComponent<PlayerController>() != null)
         {
             _playerInRange = true;
-            ItemDuplication.RegisterInteractionBlocker(this);
+
+            // Block item duplication while near an NPC
+            ItemDuplication.BlockDuplication();
+
             if (HUDManager.Instance != null)
             {
-                HUDManager.Instance.SetPrompt($"[E] Talk to {_npcName}", this);
+                HUDManager.Instance.ShowPrompt($"[E] Talk to {_npcName}");
             }
         }
     }
@@ -57,10 +55,12 @@ public class PassiveNPC : MonoBehaviour
         if (other.CompareTag("Player") || other.GetComponent<PlayerController>() != null)
         {
             _playerInRange = false;
-            ItemDuplication.UnregisterInteractionBlocker(this);
+
+            ItemDuplication.AllowDuplication();
+
             if (HUDManager.Instance != null)
             {
-                HUDManager.Instance.ClearPrompt(this);
+                HUDManager.Instance.HidePrompt();
             }
         }
     }
@@ -68,10 +68,12 @@ public class PassiveNPC : MonoBehaviour
     private void OnDisable()
     {
         _playerInRange = false;
-        ItemDuplication.UnregisterInteractionBlocker(this);
+
+        ItemDuplication.AllowDuplication();
+
         if (HUDManager.Instance != null)
         {
-            HUDManager.Instance.ClearPrompt(this);
+            HUDManager.Instance.HidePrompt();
         }
     }
 

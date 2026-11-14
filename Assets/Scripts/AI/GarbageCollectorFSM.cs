@@ -1,13 +1,8 @@
+// N.P.C. (Null Pointer Character) - FSM for Garbage Collector enemy (Patrol -> Alert -> Purge)
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// AI Finite State Machine for the Garbage Collector daemons in "N.P.C.".
-/// Patrols along a sequence of waypoints. When the red spotlight detection cone
-/// intersects the player, triggers an alarm, briefly freezes, and purges the
-/// player data (resets them to the latest checkpoint via CheckpointManager).
-/// </summary>
 public class GarbageCollectorFSM : MonoBehaviour
 {
     public enum State
@@ -16,8 +11,6 @@ public class GarbageCollectorFSM : MonoBehaviour
         Alert,
         Purge
     }
-
-    #region Inspector Fields
 
     [Header("Current State")]
     [SerializeField]
@@ -52,18 +45,11 @@ public class GarbageCollectorFSM : MonoBehaviour
     [SerializeField, Tooltip("Time in seconds of the alert sequence before resetting the player.")]
     private float _purgeDelay = 0.6f;
 
-    #endregion
-
-    #region Private State
-
+    // Internal patrol state
     private int _currentWaypointIndex = 0;
     private bool _isWaitingAtWaypoint = false;
     private bool _isPurging = false;
     private float _originalLightIntensity = 1f;
-
-    #endregion
-
-    #region Unity Lifecycle
 
     private void Start()
     {
@@ -73,7 +59,6 @@ public class GarbageCollectorFSM : MonoBehaviour
             _originalLightIntensity = _spotlight.intensity;
         }
 
-        // If no waypoints were assigned, use current position as a single point
         if (_waypoints.Count == 0)
         {
             Debug.LogWarning($"[GarbageCollector] \"{gameObject.name}\" has no waypoints assigned.", this);
@@ -89,14 +74,12 @@ public class GarbageCollectorFSM : MonoBehaviour
                 break;
             case State.Alert:
             case State.Purge:
-                // Paused during purge sequence
+                // Don't move while purging
                 break;
         }
     }
 
-    #endregion
-
-    #region Patrol Logic
+    // --- Patrol Logic ---
 
     private void HandlePatrol()
     {
@@ -106,20 +89,19 @@ public class GarbageCollectorFSM : MonoBehaviour
         Transform target = _waypoints[_currentWaypointIndex];
         if (target == null) return;
 
-        // Move towards target waypoint
+        // Move towards the current waypoint, ignoring Y so we stay on the ground
         Vector3 direction = (target.position - transform.position);
-        direction.y = 0; // Stay horizontal
+        direction.y = 0;
 
         if (direction.magnitude > _waypointTolerance)
         {
-            // Move
             transform.position = Vector3.MoveTowards(
                 transform.position,
                 new Vector3(target.position.x, transform.position.y, target.position.z),
                 _patrolSpeed * Time.deltaTime
             );
 
-            // Rotate smoothly towards movement direction
+            // Smoothly rotate towards movement direction
             if (direction != Vector3.zero)
             {
                 Quaternion targetRot = Quaternion.LookRotation(direction);
@@ -128,7 +110,7 @@ public class GarbageCollectorFSM : MonoBehaviour
         }
         else
         {
-            // Reached waypoint
+            // We reached the waypoint, wait before moving to next
             StartCoroutine(WaitAtWaypointRoutine());
         }
     }
@@ -138,18 +120,14 @@ public class GarbageCollectorFSM : MonoBehaviour
         _isWaitingAtWaypoint = true;
         yield return new WaitForSeconds(_waypointWaitTime);
 
-        // Advance to next waypoint (loop ping-pong or cycle)
+        // Cycle to the next waypoint (wraps around)
         _currentWaypointIndex = (_currentWaypointIndex + 1) % _waypoints.Count;
         _isWaitingAtWaypoint = false;
     }
 
-    #endregion
+    // --- Detection & Purge ---
 
-    #region Detection & Purge
-
-    /// <summary>
-    /// Called by the detection cone trigger (child object with a trigger collider).
-    /// </summary>
+    // Called by the GarbageCollectorDetector when player enters the spotlight cone
     public void OnPlayerDetected(GameObject player)
     {
         if (_isPurging) return;
@@ -164,28 +142,28 @@ public class GarbageCollectorFSM : MonoBehaviour
 
         Debug.Log("<color=red><b>[Garbage Collector] ANOMALY DETECTED! INITIATING PURGE ROUTINE...</b></color>");
 
-        // Turn light intense red / flash
+        // Flash spotlight red to warn the player
         if (_spotlight != null)
         {
             _spotlight.color = _purgeLightColor;
             _spotlight.intensity = _originalLightIntensity * 2f;
         }
 
-        // Brief delay for dramatic feedback (alarm, screen freeze)
+        // Brief dramatic pause before resetting the player
         yield return new WaitForSeconds(_purgeDelay);
 
-        // Reset player to latest checkpoint
+        // Send player back to last checkpoint
         if (CheckpointManager.Instance != null)
         {
             CheckpointManager.Instance.RespawnPlayer();
         }
         else
         {
-            // Fallback: teleport to origin if no manager
+            // Fallback if no checkpoint manager exists
             player.transform.position = new Vector3(0, 1, 0);
         }
 
-        // Reset state
+        // Short cooldown then go back to patrolling
         yield return new WaitForSeconds(0.4f);
 
         if (_spotlight != null)
@@ -198,9 +176,7 @@ public class GarbageCollectorFSM : MonoBehaviour
         _currentState = State.Patrol;
     }
 
-    #endregion
-
-    #region Editor Gizmos
+    // --- Editor Gizmos ---
 
     private void OnDrawGizmos()
     {
@@ -220,6 +196,4 @@ public class GarbageCollectorFSM : MonoBehaviour
             }
         }
     }
-
-    #endregion
 }

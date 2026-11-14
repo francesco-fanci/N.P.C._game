@@ -1,10 +1,8 @@
+// N.P.C. (Null Pointer Character) - Collectible crash log pickup
+// Rotates and bobs in the world, press E to read the developer note
+
 using UnityEngine;
 
-/// <summary>
-/// A collectible developer note left behind in the server code.
-/// Rotates and bobs gently. When the player enters its trigger and presses E,
-/// opens the Crash Log reader modal on the HUD.
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public class CrashLogCollectible : MonoBehaviour
 {
@@ -34,6 +32,7 @@ public class CrashLogCollectible : MonoBehaviour
 
     private void Awake()
     {
+        // Make sure the collider is set as trigger for detection
         Collider col = GetComponent<Collider>();
         if (col != null) col.isTrigger = true;
     }
@@ -45,12 +44,12 @@ public class CrashLogCollectible : MonoBehaviour
 
     private void Update()
     {
-        // Idle animation
+        // Idle animation: spin and bob up/down
         transform.Rotate(Vector3.up, _rotationSpeed * Time.deltaTime, Space.World);
         float newY = _startPos.y + Mathf.Sin(Time.time * _bobSpeed) * _bobHeight;
         transform.position = new Vector3(_startPos.x, newY, _startPos.z);
 
-        // Interaction
+        // Open/close the log when E is pressed
         if (_playerInRange && Input.GetKeyDown(KeyCode.E))
         {
             ToggleLog();
@@ -66,13 +65,13 @@ public class CrashLogCollectible : MonoBehaviour
             if (_isOpen)
             {
                 HUDManager.Instance.ShowCrashLog(_logTitle, _logContent);
-                HUDManager.Instance.SetPrompt("[E] Close Crash Log", this);
+                HUDManager.Instance.ShowPrompt("[E] Close Crash Log");
                 HUDManager.Instance.SetObjective("EXPLOIT ACQUIRED: Stone wall at Z > 35 has unbaked collision. Phase through it into the backstage.");
             }
             else
             {
                 HUDManager.Instance.HideCrashLog();
-                HUDManager.Instance.SetPrompt($"[E] Inspect {_logTitle}", this);
+                HUDManager.Instance.ShowPrompt($"[E] Inspect {_logTitle}");
             }
         }
     }
@@ -82,10 +81,11 @@ public class CrashLogCollectible : MonoBehaviour
         if (other.CompareTag("Player") || other.GetComponent<PlayerController>() != null)
         {
             _playerInRange = true;
-            ItemDuplication.RegisterInteractionBlocker(this);
+            ItemDuplication.BlockDuplication();
+
             if (HUDManager.Instance != null && !_isOpen)
             {
-                HUDManager.Instance.SetPrompt($"[E] Inspect {_logTitle}", this);
+                HUDManager.Instance.ShowPrompt($"[E] Inspect {_logTitle}");
             }
         }
     }
@@ -95,8 +95,9 @@ public class CrashLogCollectible : MonoBehaviour
         if (other.CompareTag("Player") || other.GetComponent<PlayerController>() != null)
         {
             _playerInRange = false;
-            ItemDuplication.UnregisterInteractionBlocker(this);
+            ItemDuplication.AllowDuplication();
 
+            // Close the log if it was open when the player walks away
             if (_isOpen)
             {
                 _isOpen = false;
@@ -105,7 +106,7 @@ public class CrashLogCollectible : MonoBehaviour
 
             if (HUDManager.Instance != null)
             {
-                HUDManager.Instance.ClearPrompt(this);
+                HUDManager.Instance.HidePrompt();
             }
         }
     }
@@ -113,7 +114,7 @@ public class CrashLogCollectible : MonoBehaviour
     private void OnDisable()
     {
         _playerInRange = false;
-        ItemDuplication.UnregisterInteractionBlocker(this);
+        ItemDuplication.AllowDuplication();
 
         if (_isOpen && HUDManager.Instance != null)
         {
@@ -123,7 +124,7 @@ public class CrashLogCollectible : MonoBehaviour
 
         if (HUDManager.Instance != null)
         {
-            HUDManager.Instance.ClearPrompt(this);
+            HUDManager.Instance.HidePrompt();
         }
     }
 }

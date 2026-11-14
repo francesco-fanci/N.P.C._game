@@ -1,16 +1,12 @@
+// N.P.C. (Null Pointer Character) - Screen glitch effect using URP volume overrides
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-/// <summary>
-/// Triggers temporary screen glitch impulses (heavy chromatic aberration,
-/// camera shake, and color flash) when the player performs glitch exploits
-/// like Wall Phasing or falls into the void.
-/// </summary>
 public class ScreenGlitchEffect : MonoBehaviour
 {
-    public static ScreenGlitchEffect Instance { get; private set; }
+    public static ScreenGlitchEffect Instance;
 
     [Header("Volume Reference")]
     [SerializeField]
@@ -22,18 +18,22 @@ public class ScreenGlitchEffect : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
         {
             Destroy(gameObject);
             return;
         }
-        Instance = this;
 
         if (_postProcessVolume == null)
         {
             _postProcessVolume = GetComponent<Volume>();
         }
 
+        // Cache the post processing overrides from the volume profile
         if (_postProcessVolume != null && _postProcessVolume.profile != null)
         {
             _postProcessVolume.profile.TryGet(out _chromaticAberration);
@@ -49,9 +49,7 @@ public class ScreenGlitchEffect : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Triggers a brief glitch burst (chromatic tear + distortion).
-    /// </summary>
+    // Call this to trigger a brief screen glitch burst
     public void TriggerGlitch(float duration = 0.4f, float intensity = 1f)
     {
         if (_glitchRoutine != null)
@@ -69,7 +67,7 @@ public class ScreenGlitchEffect : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
-            float pulse = Mathf.Sin(t * Mathf.PI); // 0 -> 1 -> 0
+            float pulse = Mathf.Sin(t * Mathf.PI); // Smooth curve: 0 -> 1 -> 0
 
             if (_chromaticAberration != null)
             {
@@ -84,6 +82,7 @@ public class ScreenGlitchEffect : MonoBehaviour
             yield return null;
         }
 
+        // Reset to default baseline values
         if (_chromaticAberration != null) _chromaticAberration.intensity.value = 0.1f;
         if (_lensDistortion != null) _lensDistortion.intensity.value = 0f;
     }

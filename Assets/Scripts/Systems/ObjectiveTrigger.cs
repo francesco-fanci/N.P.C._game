@@ -1,9 +1,6 @@
+// N.P.C. (Null Pointer Character) - Trigger volume that updates the HUD objective tracker
 using UnityEngine;
 
-/// <summary>
-/// Trigger volume that updates the HUD Objective Tracker when the player enters.
-/// Place along progression pathways to guide the player through the level.
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public class ObjectiveTrigger : MonoBehaviour
 {
@@ -41,9 +38,7 @@ public class ObjectiveTrigger : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Allows changing the objective text programmatically.
-    /// </summary>
+    // Set objective text from script
     public void SetText(string newText)
     {
         _objectiveText = newText;

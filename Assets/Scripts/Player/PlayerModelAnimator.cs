@@ -1,14 +1,8 @@
+// N.P.C. (Null Pointer Character) - Procedural character animator for walk, sprint, jump and idle
 using UnityEngine;
 
-/// <summary>
-/// Procedural animator for the stylized humanoid Merchant character in "N.P.C.".
-/// Drives limb swings, body bounce, lean into turns, jump tucks, and landing squash/stretch
-/// based on CharacterController velocity and grounding state.
-/// </summary>
 public class PlayerModelAnimator : MonoBehaviour
 {
-    #region Inspector Fields — Rig References
-
     [Header("Rig Transforms (Children of Model Root)")]
     [SerializeField, Tooltip("Hips / Root of the visual mesh.")]
     private Transform _hips;
@@ -47,10 +41,6 @@ public class PlayerModelAnimator : MonoBehaviour
     [SerializeField, Tooltip("Forward body lean angle during sprint.")]
     private float _sprintLeanAngle = 14f;
 
-    #endregion
-
-    #region Private State
-
     private CharacterController _controller;
     private PlayerController _playerController;
     private float _walkCycle = 0f;
@@ -58,10 +48,6 @@ public class PlayerModelAnimator : MonoBehaviour
     private Vector3 _hipsInitialLocalPos;
     private Quaternion _torsoInitialLocalRot;
     private Quaternion _headInitialLocalRot;
-
-    #endregion
-
-    #region Unity Lifecycle
 
     private void Awake()
     {
@@ -104,10 +90,9 @@ public class PlayerModelAnimator : MonoBehaviour
     {
         if (_hips == null) return;
 
-        // Smooth squash recovery
+        // Smooth squash recovery back to normal scale
         _squashFactor = Mathf.MoveTowards(_squashFactor, 1f, Time.deltaTime * 6f);
 
-        // Determine ground & speed state
         bool isGrounded = _controller != null ? _controller.isGrounded : true;
         Vector3 horizontalVelocity = _controller != null ? new Vector3(_controller.velocity.x, 0f, _controller.velocity.z) : Vector3.zero;
         float speed = horizontalVelocity.magnitude;
@@ -117,7 +102,7 @@ public class PlayerModelAnimator : MonoBehaviour
         {
             if (isMoving)
             {
-                // Advance walk/sprint cycle
+                // Advance walk/sprint cycle based on speed
                 float speedFactor = Mathf.Clamp(speed / 5f, 0.5f, 2f);
                 _walkCycle += Time.deltaTime * _strideFrequency * speedFactor;
 
@@ -132,11 +117,11 @@ public class PlayerModelAnimator : MonoBehaviour
                 if (_armL != null) _armL.localRotation = Quaternion.Euler(-armSwing, 0f, 0f);
                 if (_armR != null) _armR.localRotation = Quaternion.Euler(armSwing, 0f, 0f);
 
-                // Hip bobbing with two dips per walk cycle
+                // Hip bobbing — two dips per walk cycle
                 float bobY = Mathf.Abs(Mathf.Sin(_walkCycle)) * _hipBobAmount;
                 _hips.localPosition = _hipsInitialLocalPos + Vector3.up * bobY;
 
-                // Forward lean proportional to speed
+                // Forward lean proportional to speed (more lean when sprinting)
                 float lean = Mathf.Clamp(speed / 8f, 0f, 1f) * _sprintLeanAngle;
                 if (_torso != null) _torso.localRotation = Quaternion.Euler(lean, 0f, 0f);
             }
@@ -162,7 +147,7 @@ public class PlayerModelAnimator : MonoBehaviour
         }
         else
         {
-            // Airborne / Jumping pose: legs slightly tucked, arms raised for balance
+            // Airborne pose: legs slightly tucked, arms raised for balance
             float verticalVelocity = _controller != null ? _controller.velocity.y : 0f;
             float jumpTilt = verticalVelocity > 0f ? -15f : 20f;
 
@@ -180,14 +165,11 @@ public class PlayerModelAnimator : MonoBehaviour
 
     private void HandleLanded()
     {
-        // Impact squash
+        // Impact squash on landing
         _squashFactor = 0.76f;
     }
 
-    #endregion
-
-    #region Public Configuration Helper
-
+    // Lets other scripts assign bone references at runtime
     public void SetupBones(Transform hips, Transform torso, Transform legL, Transform legR, Transform armL, Transform armR, Transform head)
     {
         _hips = hips;
@@ -202,6 +184,4 @@ public class PlayerModelAnimator : MonoBehaviour
         if (_torso != null) _torsoInitialLocalRot = _torso.localRotation;
         if (_head != null) _headInitialLocalRot = _head.localRotation;
     }
-
-    #endregion
 }

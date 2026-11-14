@@ -1,51 +1,27 @@
+// N.P.C. (Null Pointer Character) - Item duplication glitch mechanic
+// Press E to spawn physics crates, capped with recycling of the oldest one
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Allows the player to "exploit" item duplication — a glitch-turned-mechanic.
-/// Press E to spawn a physics crate at the designated spawn point.
-/// Active crates are capped; the oldest is recycled when the limit is reached.
-/// Attach this component to the Player GameObject.
-/// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class ItemDuplication : MonoBehaviour
 {
-    #region Interaction Blocker API
+    // Simple counter to block duplication when interactables are nearby
+    private static int _nearbyInteractables = 0;
 
-    private static readonly HashSet<object> _interactionBlockers = new HashSet<object>();
-
-    /// <summary>
-    /// Registers an object (e.g. NPC or lore terminal) that is currently using the [E] key.
-    /// Prevents accidental crate duplication during dialogue or inspection.
-    /// </summary>
-    public static void RegisterInteractionBlocker(object source)
+    public static void BlockDuplication()
     {
-        if (source != null)
-        {
-            _interactionBlockers.Add(source);
-        }
+        _nearbyInteractables++;
     }
 
-    /// <summary>
-    /// Unregisters an interaction blocker when the player leaves range or closes the dialogue.
-    /// </summary>
-    public static void UnregisterInteractionBlocker(object source)
+    public static void AllowDuplication()
     {
-        if (source != null)
-        {
-            _interactionBlockers.Remove(source);
-        }
+        _nearbyInteractables = Mathf.Max(0, _nearbyInteractables - 1);
     }
 
-    /// <summary>
-    /// True when any NPC, terminal, or wall trigger is currently in range of the player.
-    /// </summary>
-    public static bool IsInteractionBlocked => _interactionBlockers.Count > 0;
-
-    #endregion
-
-    #region Inspector Fields
+    public static bool CanDuplicate => _nearbyInteractables <= 0;
 
     [Header("Duplication Setup")]
     [SerializeField, Tooltip("Prefab of the crate to duplicate. Must have a Rigidbody.")]
@@ -61,33 +37,18 @@ public class ItemDuplication : MonoBehaviour
     [SerializeField, Tooltip("Cooldown in seconds between duplication attempts.")]
     private float _cooldown = 0.5f;
 
-    #endregion
-
-    #region Events
-
-    /// <summary>
-    /// Fired every time a crate is successfully duplicated.
-    /// Parameter is the current number of active crates.
-    /// </summary>
+    // Fired every time a crate is duplicated, parameter is active crate count
     public static event Action<int> OnCrateDuplicated;
-
-    #endregion
-
-    #region Private State
 
     private readonly List<GameObject> _activeCrates = new List<GameObject>();
     private float _lastDuplicateTime = Mathf.NegativeInfinity;
-
-    #endregion
-
-    #region Unity Lifecycle
 
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.E))
         {
-            // Do not duplicate if an interaction (NPC, terminal, wall) is using the E key
-            if (IsInteractionBlocked) return;
+            // Don't duplicate if something else is using the E key
+            if (!CanDuplicate) return;
 
             TryDuplicate();
         }
@@ -95,17 +56,10 @@ public class ItemDuplication : MonoBehaviour
 
     private void OnDestroy()
     {
-        _interactionBlockers.Clear();
+        _nearbyInteractables = 0;
     }
 
-    #endregion
-
-    #region Public API
-
-    /// <summary>
-    /// Attempts to duplicate a crate. Respects cooldown and max-crate cap.
-    /// Can be called from other systems (e.g. UI buttons) as well as from Update.
-    /// </summary>
+    // Attempts to spawn a crate, respecting cooldown and max cap
     public void TryDuplicate()
     {
         if (_cratePrefab == null || _spawnPoint == null)
@@ -120,10 +74,10 @@ public class ItemDuplication : MonoBehaviour
             return;
         }
 
-        // Purge any crates that were destroyed externally (e.g. fell into the void)
+        // Clean up any externally destroyed crates
         _activeCrates.RemoveAll(c => c == null);
 
-        // Enforce cap — destroy the oldest crate if we are at the limit
+        // Destroy the oldest crate if we hit the limit
         if (_activeCrates.Count >= _maxCrates)
         {
             GameObject oldest = _activeCrates[0];
@@ -138,7 +92,7 @@ public class ItemDuplication : MonoBehaviour
         // Spawn the new crate
         GameObject newCrate = Instantiate(_cratePrefab, _spawnPoint.position, _spawnPoint.rotation);
 
-        // Guarantee a Rigidbody so the crate falls and interacts with pressure plates
+        // Make sure it has a Rigidbody so it falls and hits pressure plates
         if (newCrate.GetComponent<Rigidbody>() == null)
         {
             newCrate.AddComponent<Rigidbody>();
@@ -147,38 +101,21 @@ public class ItemDuplication : MonoBehaviour
         _activeCrates.Add(newCrate);
         _lastDuplicateTime = Time.time;
 
-        // Visual / audio hook
         PlayDuplicationEffect(newCrate);
 
-        // Notify listeners
         OnCrateDuplicated?.Invoke(_activeCrates.Count);
     }
 
-    /// <summary>
-    /// Returns the current number of active (non-destroyed) crates.
-    /// </summary>
+    // Returns how many crates are currently alive
     public int GetActiveCrateCount()
     {
         _activeCrates.RemoveAll(c => c == null);
         return _activeCrates.Count;
     }
 
-    #endregion
-
-    #region Effects Hook
-
-    /// <summary>
-    /// Called immediately after a crate is spawned.
-    /// Override in a subclass or subscribe to <see cref="OnCrateDuplicated"/>
-    /// to play particles, sounds, or screen effects.
-    /// </summary>
-    /// <param name="spawnedCrate">The newly instantiated crate.</param>
-    protected virtual void PlayDuplicationEffect(GameObject spawnedCrate)
+    // Hook for VFX/SFX when a crate spawns
+    private void PlayDuplicationEffect(GameObject spawnedCrate)
     {
-        // Stub — hook your VFX / SFX here.
-        // Example: Instantiate a particle prefab at spawnedCrate.transform.position
-        // Example: AudioSource.PlayClipAtPoint(clip, spawnedCrate.transform.position);
+        // TODO: add particle effect or sound here
     }
-
-    #endregion
 }

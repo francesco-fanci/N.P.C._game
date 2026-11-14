@@ -1,9 +1,6 @@
+// N.P.C. (Null Pointer Character) - Detection trigger for Garbage Collector enemies
 using UnityEngine;
 
-/// <summary>
-/// Attached to the child detection trigger volume of a Garbage Collector.
-/// When the player enters the red spotlight beam, triggers the FSM Purge routine.
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public class GarbageCollectorDetector : MonoBehaviour
 {
@@ -12,12 +9,13 @@ public class GarbageCollectorDetector : MonoBehaviour
 
     private void Awake()
     {
+        // Try to find the FSM on the parent if not assigned in the inspector
         if (_fsm == null)
         {
             _fsm = GetComponentInParent<GarbageCollectorFSM>();
         }
 
-        // Ensure collider is marked as trigger
+        // Make sure collider is a trigger so OnTriggerEnter works
         Collider col = GetComponent<Collider>();
         if (col != null && !col.isTrigger)
         {
@@ -29,7 +27,7 @@ public class GarbageCollectorDetector : MonoBehaviour
     {
         if (_fsm == null) return;
 
-        // Check if player
+        // Only react to the player entering the detection zone
         if (other.CompareTag("Player") || other.GetComponent<PlayerController>() != null)
         {
             _fsm.OnPlayerDetected(other.gameObject);

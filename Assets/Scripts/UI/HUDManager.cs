@@ -1,31 +1,21 @@
+// N.P.C. (Null Pointer Character) - In-game HUD Manager (timer, RAM meter, prompts, modals)
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Diegetic developer-debug HUD for "N.P.C. (Null Pointer Character)".
-/// Displays the server wipe countdown, memory leak RAM gauge, active crates,
-/// crosshair reticle, and key prompts.
-/// </summary>
 public class HUDManager : MonoBehaviour
 {
-    public static HUDManager Instance { get; private set; }
-
-    #region Inspector Fields — Countdown (Top Right)
+    public static HUDManager Instance;
 
     [Header("Server Countdown (Top Right)")]
     [SerializeField, Tooltip("Text displaying 'SERVER WIPE IN MM:SS'.")]
     private TextMeshProUGUI _countdownText;
 
     [SerializeField, Tooltip("Color of the countdown text.")]
-    private Color _countdownNormalColor = new Color(1f, 0.25f, 0.25f, 1f); // bright red
+    private Color _countdownNormalColor = new Color(1f, 0.25f, 0.25f, 1f);
 
     [SerializeField, Tooltip("Flash color when under 1 minute.")]
     private Color _countdownUrgentColor = Color.red;
-
-    #endregion
-
-    #region Inspector Fields — Memory Leak Meter (Top Left)
 
     [Header("Memory Leak (Top Left)")]
     [SerializeField, Tooltip("Slider or fill bar showing RAM usage.")]
@@ -49,10 +39,6 @@ public class HUDManager : MonoBehaviour
 
     [SerializeField, Tooltip("Max crates allowed (matches ItemDuplication cap).")]
     private int _maxCrates = 5;
-
-    #endregion
-
-    #region Inspector Fields — Center Reticle & Prompts
 
     [Header("Reticle & Prompts")]
     [SerializeField, Tooltip("Center crosshair or reticle dot.")]
@@ -100,20 +86,24 @@ public class HUDManager : MonoBehaviour
     private GameObject _controlsSubPanel;
 
     private bool _isPaused = false;
-    public bool IsPaused => _isPaused;
+    private const string DefaultPrompt = "[E] Duplicate Crate / Exploit";
 
-    #endregion
-
-    #region Unity Lifecycle
+    public bool IsPaused
+    {
+        get { return _isPaused; }
+    }
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
         {
             Destroy(gameObject);
             return;
         }
-        Instance = this;
     }
 
     private void OnEnable()
@@ -136,12 +126,11 @@ public class HUDManager : MonoBehaviour
 
     private void Start()
     {
-        // Initialise displays
         UpdateCrateAndRamDisplay(0);
 
         if (_actionPromptText != null)
         {
-            _actionPromptText.text = "[E] Duplicate Crate / Exploit";
+            _actionPromptText.text = DefaultPrompt;
         }
 
         if (_objectiveText != null && string.IsNullOrEmpty(_objectiveText.text))
@@ -160,10 +149,7 @@ public class HUDManager : MonoBehaviour
         }
     }
 
-    #endregion
-
-    #region Display Updates
-
+    // Update the server wipe timer in the top-right
     private void UpdateCountdownDisplay()
     {
         if (_countdownText == null) return;
@@ -172,7 +158,7 @@ public class HUDManager : MonoBehaviour
         {
             _countdownText.text = ServerCountdown.Instance.DisplayText;
 
-            // Flash red under 60 seconds
+            // Flash red if remaining time is under 1 minute
             if (ServerCountdown.Instance.RemainingTime <= 60f)
             {
                 float t = Mathf.PingPong(Time.time * 3f, 1f);
@@ -194,33 +180,26 @@ public class HUDManager : MonoBehaviour
         UpdateCrateAndRamDisplay(currentCount);
     }
 
-    /// <summary>
-    /// Updates the RAM bar and active crates counter based on current active crates.
-    /// </summary>
+    // Updates the RAM bar and active crates counter based on current active crates
     public void UpdateCrateAndRamDisplay(int crateCount)
     {
-        // Calculate dynamic RAM usage
         float ramPercent = Mathf.Clamp(_baseRamPercent + (crateCount * _ramPerCrate), 0f, 100f);
 
-        // Update Slider
         if (_ramSlider != null)
         {
             _ramSlider.value = ramPercent / 100f;
         }
 
-        // Update RAM Text
         if (_ramUsageText != null)
         {
-            _ramUsageText.text = $"RAM USAGE: {Mathf.RoundToInt(ramPercent)}%";
+            _ramUsageText.text = "RAM USAGE: " + Mathf.RoundToInt(ramPercent) + "%";
         }
 
-        // Update Crate Counter
         if (_crateCounterText != null)
         {
-            _crateCounterText.text = $"Active Crates: {crateCount}/{_maxCrates}";
+            _crateCounterText.text = "Active Crates: " + crateCount + "/" + _maxCrates;
         }
 
-        // Update warning banner
         if (_warningBannerText != null)
         {
             if (crateCount >= _maxCrates)
@@ -232,76 +211,51 @@ public class HUDManager : MonoBehaviour
             else if (crateCount >= 3)
             {
                 _warningBannerText.text = "MEM_LEAK: OOM WARN";
-                _warningBannerText.color = new Color(1f, 0.6f, 0.2f); // orange
+                _warningBannerText.color = new Color(1f, 0.6f, 0.2f);
                 _warningBannerText.gameObject.SetActive(true);
             }
             else
             {
                 _warningBannerText.text = "STATUS: MEMORY_LEAK_TRACKED";
-                _warningBannerText.color = new Color(0.2f, 0.9f, 0.9f); // cyan
+                _warningBannerText.color = new Color(0.2f, 0.9f, 0.9f);
                 _warningBannerText.gameObject.SetActive(true);
             }
         }
     }
 
-    #region Context Prompts
+    // --- Action Prompts ---
 
-    private readonly System.Collections.Generic.Dictionary<object, string> _activePrompts = new System.Collections.Generic.Dictionary<object, string>();
-    private const string DefaultPrompt = "[E] Duplicate Crate / Exploit";
-
-    /// <summary>
-    /// Sets a contextual interaction prompt for a specific caller.
-    /// </summary>
-    public void SetPrompt(string promptText, object source = null)
+    public void ShowPrompt(string promptText)
     {
-        if (source != null)
-        {
-            _activePrompts[source] = promptText;
-        }
-
         if (_actionPromptText != null)
         {
             _actionPromptText.text = promptText;
-            _actionPromptText.gameObject.SetActive(!string.IsNullOrEmpty(promptText));
+            _actionPromptText.gameObject.SetActive(true);
         }
     }
 
-    /// <summary>
-    /// Clears the prompt set by a specific caller and restores the previous or default prompt.
-    /// </summary>
-    public void ClearPrompt(object source)
+    public void HidePrompt()
     {
-        if (source != null && _activePrompts.ContainsKey(source))
-        {
-            _activePrompts.Remove(source);
-        }
-
         if (_actionPromptText != null)
         {
-            if (_activePrompts.Count > 0)
-            {
-                // Show the most recent registered prompt
-                string latest = null;
-                foreach (var val in _activePrompts.Values)
-                {
-                    latest = val;
-                }
-                _actionPromptText.text = latest;
-                _actionPromptText.gameObject.SetActive(true);
-            }
-            else
-            {
-                _actionPromptText.text = DefaultPrompt;
-                _actionPromptText.gameObject.SetActive(true);
-            }
+            _actionPromptText.text = DefaultPrompt;
+            _actionPromptText.gameObject.SetActive(true);
         }
     }
 
-    #endregion
+    // Backward-compatible helpers for callers passing a source
+    public void SetPrompt(string promptText, object source = null)
+    {
+        ShowPrompt(promptText);
+    }
 
-    /// <summary>
-    /// Displays a corrupted dialogue box for a few seconds.
-    /// </summary>
+    public void ClearPrompt(object source = null)
+    {
+        HidePrompt();
+    }
+
+    // --- Corrupted NPC Dialogue Popup ---
+
     public void ShowCorruptedDialogue(string message = "Error 404: DialogueString Missing\n[Uncaught NullPointerException]", float duration = 4f)
     {
         if (_dialoguePanel != null && _dialogueText != null)
@@ -322,9 +276,8 @@ public class HUDManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Displays a full developer Crash Log note in a modal window.
-    /// </summary>
+    // --- Crash Log Modal ---
+
     public void ShowCrashLog(string title, string content)
     {
         if (_crashLogPanel != null)
@@ -343,9 +296,8 @@ public class HUDManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Displays the sector escape victory banner.
-    /// </summary>
+    // --- Sector Complete Banner ---
+
     public void ShowSectorComplete(string message = "SECTOR 01 ESCAPED\nENTERING WIREFRAME BACKSTAGE", float duration = 5f)
     {
         if (_sectorCompleteBanner != null && _sectorCompleteText != null)
@@ -369,13 +321,8 @@ public class HUDManager : MonoBehaviour
         }
     }
 
-    #endregion
+    // --- Objective Tracker ---
 
-    #region Objective & Pause Menu API
-
-    /// <summary>
-    /// Updates the top-center quest / protocol objective text.
-    /// </summary>
     public void SetObjective(string objective)
     {
         if (_objectiveText != null)
@@ -388,9 +335,8 @@ public class HUDManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Toggles the game pause state and unlocks/locks the cursor.
-    /// </summary>
+    // --- Pause Menu ---
+
     public void TogglePause()
     {
         SetPaused(!_isPaused);
@@ -411,7 +357,6 @@ public class HUDManager : MonoBehaviour
             _pauseMenuPanel.SetActive(_isPaused);
         }
 
-        // When closing pause menu, also close controls sub-panel
         if (!_isPaused && _controlsSubPanel != null)
         {
             _controlsSubPanel.SetActive(false);
@@ -421,9 +366,6 @@ public class HUDManager : MonoBehaviour
         Cursor.visible = _isPaused;
     }
 
-    /// <summary>
-    /// Respawns the player at the last checkpoint and resumes the game.
-    /// </summary>
     public void RespawnFromCheckpoint()
     {
         ResumeGame();
@@ -433,9 +375,6 @@ public class HUDManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Reloads the current level / scene.
-    /// </summary>
     public void RestartSector()
     {
         Time.timeScale = 1f;
@@ -444,9 +383,12 @@ public class HUDManager : MonoBehaviour
         );
     }
 
-    /// <summary>
-    /// Toggles the controls / exploit reference modal.
-    /// </summary>
+    public void ReturnToMainMenu()
+    {
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+    }
+
     public void ToggleControlsModal()
     {
         if (_controlsSubPanel != null)
@@ -454,6 +396,4 @@ public class HUDManager : MonoBehaviour
             _controlsSubPanel.SetActive(!_controlsSubPanel.activeSelf);
         }
     }
-
-    #endregion
 }

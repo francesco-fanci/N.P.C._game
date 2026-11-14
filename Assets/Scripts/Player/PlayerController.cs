@@ -1,19 +1,9 @@
+// N.P.C. (Null Pointer Character) - Player movement controller with jump and coyote time
 using UnityEngine;
 
-/// <summary>
-/// 3rd-person character controller for "N.P.C. (Null Pointer Character)".
-/// Uses <see cref="CharacterController"/> for all movement — no Rigidbody.
-/// Supports walk / sprint, custom gravity, single jump, and
-/// <em>Coyote Time</em> ("False Jump") — a grace window that lets the player
-/// jump shortly after leaving a ledge.
-/// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Movement
-    // ─────────────────────────────────────────────────────────────────
-
     [Header("Movement")]
     [SerializeField, Tooltip("Walking speed in m/s.")]
     private float _walkSpeed = 5f;
@@ -27,10 +17,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField, Tooltip("Rate at which the character rotates toward the movement direction (degrees/s).")]
     private float _rotationSpeed = 720f;
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Gravity & Jump
-    // ─────────────────────────────────────────────────────────────────
-
     [Header("Gravity & Jump")]
     [SerializeField, Tooltip("Gravity acceleration (negative = downward). -20 gives a snappy feel.")]
     private float _gravity = -20f;
@@ -41,17 +27,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField, Tooltip("Velocity applied on the frame the character lands to keep it stuck to slopes.")]
     private float _stickToGroundForce = -2f;
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Coyote Time ("False Jump")
-    // ─────────────────────────────────────────────────────────────────
-
     [Header("Coyote Time (\"False Jump\")")]
     [SerializeField, Tooltip("Seconds after leaving a ledge during which the player can still jump.")]
     private float _coyoteTime = 0.2f;
-
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Ground Check
-    // ─────────────────────────────────────────────────────────────────
 
     [Header("Ground Check")]
     [SerializeField, Tooltip("Extra radius for the ground-check SphereCast.")]
@@ -63,32 +41,16 @@ public class PlayerController : MonoBehaviour
     [SerializeField, Tooltip("Layers considered as ground.")]
     private LayerMask _groundLayers = ~0; // everything by default
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Inspector — Camera Reference
-    // ─────────────────────────────────────────────────────────────────
-
     [Header("Camera Reference")]
     [SerializeField, Tooltip("Transform of the camera used to compute movement direction. " +
                              "Assign the PlayerCamera GameObject here.")]
     private Transform _cameraTransform;
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Public API
-    // ─────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// True when the character is considered grounded (controller + SphereCast).
-    /// </summary>
+    // True when the character is on the ground
     public bool IsGrounded => _isGrounded;
 
-    /// <summary>
-    /// Fired on the frame the character lands after being airborne.
-    /// </summary>
+    // Fired on the frame the character lands after being airborne
     public event System.Action OnLanded;
-
-    // ─────────────────────────────────────────────────────────────────
-    //  Private State
-    // ─────────────────────────────────────────────────────────────────
 
     private CharacterController _controller;
     private Vector3 _velocity;
@@ -99,10 +61,6 @@ public class PlayerController : MonoBehaviour
     private bool _wasGroundedLastFrame;
     private float _lastGroundedTime;
     private bool _jumpRequested;
-
-    // ─────────────────────────────────────────────────────────────────
-    //  Unity Lifecycle
-    // ─────────────────────────────────────────────────────────────────
 
     private void Awake()
     {
@@ -131,22 +89,14 @@ public class PlayerController : MonoBehaviour
         ApplyMotion();
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Ground Check
-    // ─────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Combines <see cref="CharacterController.isGrounded"/> with a
-    /// SphereCast for extra reliability on slopes and edges.
-    /// </summary>
+    // Uses both CharacterController.isGrounded and a SphereCast for reliability on slopes
     private void UpdateGroundCheck()
     {
         _wasGroundedLastFrame = _isGrounded;
 
-        // Primary: CharacterController built-in check
         bool controllerGrounded = _controller.isGrounded;
 
-        // Secondary: SphereCast from the bottom sphere of the CharacterController downward
+        // SphereCast from the bottom of the CharacterController downward
         bool sphereGrounded = false;
         Vector3 sphereOrigin = transform.position + _controller.center + Vector3.down * (_controller.height * 0.5f - _controller.radius);
         float castDistance = _controller.radius + _groundCheckDistance;
@@ -165,16 +115,12 @@ public class PlayerController : MonoBehaviour
             _lastGroundedTime = Time.time;
         }
 
-        // Landing event
+        // Fire landing event
         if (_isGrounded && !_wasGroundedLastFrame)
         {
             OnLanded?.Invoke();
         }
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    //  Input
-    // ─────────────────────────────────────────────────────────────────
 
     private void HandleJumpInput()
     {
@@ -184,10 +130,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Movement (camera-relative)
-    // ─────────────────────────────────────────────────────────────────
-
+    // Camera-relative movement so WASD always feels right from the player's perspective
     private void HandleMovement()
     {
         float h = Input.GetAxisRaw("Horizontal");
@@ -213,7 +156,7 @@ public class PlayerController : MonoBehaviour
                                                         _rotationSpeed * Time.deltaTime);
             transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
 
-            // Determine target speed (walk vs sprint)
+            // Walk vs sprint
             bool isSprinting = Input.GetKey(KeyCode.LeftShift);
             float targetSpeed = isSprinting ? _sprintSpeed : _walkSpeed;
 
@@ -232,10 +175,6 @@ public class PlayerController : MonoBehaviour
             _velocity.z = Mathf.SmoothDamp(_velocity.z, 0f, ref _smoothVelocity.z, _movementSmoothing);
         }
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    //  Gravity & Jump
-    // ─────────────────────────────────────────────────────────────────
 
     private void ApplyGravityAndJump()
     {
@@ -258,27 +197,15 @@ public class PlayerController : MonoBehaviour
 
         _jumpRequested = false;
 
-        // Apply gravity every frame
         _velocity.y += _gravity * Time.deltaTime;
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    //  Final Motion
-    // ─────────────────────────────────────────────────────────────────
 
     private void ApplyMotion()
     {
         _controller.Move(_velocity * Time.deltaTime);
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    //  Public Utilities
-    // ─────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Resets character velocity and movement momentum to zero.
-    /// Call when teleporting or respawning at a checkpoint.
-    /// </summary>
+    // Resets velocity and momentum — call when teleporting or respawning
     public void ResetVelocity()
     {
         _velocity = Vector3.zero;
