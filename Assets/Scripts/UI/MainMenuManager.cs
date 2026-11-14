@@ -21,6 +21,26 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField, Tooltip("Modal window displaying story lore and project info.")]
     private GameObject _aboutModal;
 
+    [SerializeField, Tooltip("Modal window displaying system options (volume, fullscreen).")]
+    private GameObject _optionsModal;
+
+    [Header("Options Controls")]
+    [SerializeField, Tooltip("Slider for master volume.")]
+    private Slider _volumeSlider;
+
+    [SerializeField, Tooltip("Toggle for fullscreen mode.")]
+    private Toggle _fullscreenToggle;
+
+    [Header("Fade Transitions")]
+    [SerializeField, Tooltip("CanvasGroup on SplashPanel for fade animation.")]
+    private CanvasGroup _splashCanvasGroup;
+
+    [SerializeField, Tooltip("CanvasGroup on MenuPanel for fade animation.")]
+    private CanvasGroup _menuCanvasGroup;
+
+    [SerializeField, Tooltip("Duration of fade transitions in seconds.")]
+    private float _fadeDuration = 0.3f;
+
     [Header("Splash Screen Animation")]
     [SerializeField, Tooltip("Blinking text prompt on the splash screen.")]
     private TextMeshProUGUI _pressAnyKeyText;
@@ -39,11 +59,32 @@ public class MainMenuManager : MonoBehaviour
     private void Start()
     {
         _startTime = Time.time;
+
         // Start in splash screen state
         if (_splashPanel != null) _splashPanel.SetActive(true);
         if (_menuPanel != null) _menuPanel.SetActive(false);
         if (_controlsModal != null) _controlsModal.SetActive(false);
         if (_aboutModal != null) _aboutModal.SetActive(false);
+        if (_optionsModal != null) _optionsModal.SetActive(false);
+
+        // Initialize options UI to match current system settings
+        if (_volumeSlider != null)
+        {
+            _volumeSlider.value = AudioListener.volume;
+            _volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
+        }
+
+        if (_fullscreenToggle != null)
+        {
+            _fullscreenToggle.isOn = Screen.fullScreen;
+            _fullscreenToggle.onValueChanged.AddListener(OnFullscreenToggled);
+        }
+
+        // Fade setup: ensure MenuPanel starts invisible if using CanvasGroups
+        if (_menuCanvasGroup != null)
+        {
+            _menuCanvasGroup.alpha = 0f;
+        }
 
         if (_pressAnyKeyText != null)
         {
@@ -88,23 +129,50 @@ public class MainMenuManager : MonoBehaviour
                 {
                     CloseAbout();
                 }
+                else if (_optionsModal != null && _optionsModal.activeSelf)
+                {
+                    CloseOptions();
+                }
             }
         }
     }
 
-    // Switches from the intro splash screen to the button dashboard
+    // Switches from the intro splash screen to the button dashboard with fade
     public void TransitionToMenu()
     {
         _inSplashState = false;
+        StartCoroutine(FadeTransition());
+    }
 
-        if (_splashPanel != null)
+    private IEnumerator FadeTransition()
+    {
+        // Fade out splash
+        if (_splashCanvasGroup != null)
         {
-            _splashPanel.SetActive(false);
+            float elapsed = 0f;
+            while (elapsed < _fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                _splashCanvasGroup.alpha = 1f - (elapsed / _fadeDuration);
+                yield return null;
+            }
+            _splashCanvasGroup.alpha = 0f;
         }
 
-        if (_menuPanel != null)
+        if (_splashPanel != null) _splashPanel.SetActive(false);
+        if (_menuPanel != null) _menuPanel.SetActive(true);
+
+        // Fade in menu
+        if (_menuCanvasGroup != null)
         {
-            _menuPanel.SetActive(true);
+            float elapsed = 0f;
+            while (elapsed < _fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                _menuCanvasGroup.alpha = elapsed / _fadeDuration;
+                yield return null;
+            }
+            _menuCanvasGroup.alpha = 1f;
         }
     }
 
@@ -149,6 +217,36 @@ public class MainMenuManager : MonoBehaviour
         {
             _aboutModal.SetActive(false);
         }
+    }
+
+    // --- Options Modal ---
+
+    public void OpenOptions()
+    {
+        if (_optionsModal != null)
+        {
+            _optionsModal.SetActive(true);
+        }
+    }
+
+    public void CloseOptions()
+    {
+        if (_optionsModal != null)
+        {
+            _optionsModal.SetActive(false);
+        }
+    }
+
+    // --- Options Callbacks ---
+
+    public void OnVolumeChanged(float value)
+    {
+        AudioListener.volume = value;
+    }
+
+    public void OnFullscreenToggled(bool isFullscreen)
+    {
+        Screen.fullScreen = isFullscreen;
     }
 
     // Quits the application
