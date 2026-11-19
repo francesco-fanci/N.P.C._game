@@ -933,7 +933,7 @@ MonoBehaviour:
   m_text: <cspace=10><b><color=#00FF3C>N . P . C .</color></b></cspace>
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
-  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -8998608196953111276, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1063,7 +1063,7 @@ MonoBehaviour:
     ]</color>
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
-  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -8998608196953111276, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1192,7 +1192,7 @@ MonoBehaviour:
   m_text: <color=#10B981><i>"Break the game. Survive the code."</i></color>
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
-  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -8998608196953111276, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1321,7 +1321,7 @@ MonoBehaviour:
   m_text: "<cspace=2><b>\u25B6  PRESS ANY KEY OR CLICK TO INITIALIZE  \u25C0</b></cspace>"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
-  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -8998608196953111276, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1450,7 +1450,7 @@ MonoBehaviour:
   m_text: <color=#64748B>v0.8.2 // EVI ENGINE VERTICAL SLICE // NODE_04</color>
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
-  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -8998608196953111276, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4057,8 +4057,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "<color=#00F0FF44>\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501</color> 
-    <color=#00F0FF>\u25C8  MEMORY LEAK DETECTED : 0x00000000  \u25C8</color>  <color=#00F0FF44>\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501</color>"
+  m_text: '<color=#00F0FF44>---------</color>  <color=#00F0FF>[ MEMORY LEAK DETECTED : 0x00000000 ]</color>  <color=#00F0FF44>---------</color>'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
