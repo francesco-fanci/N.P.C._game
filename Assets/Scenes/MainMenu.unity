@@ -930,17 +930,17 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: <cspace=10><b><color=#00F0FF>N . P . C .</color></b></cspace>
+  m_text: <cspace=10><b><color=#00FF3C>N . P . C .</color></b></cspace>
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294963200
-  m_fontColor: {r: 0, g: 0.94, b: 1, a: 1}
+    rgba: 4282187520
+  m_fontColor: {r: 0, g: 1, b: 0.2340746, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -952,7 +952,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
+  m_TextStyleHashCode: 97690656
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -1062,8 +1062,8 @@ MonoBehaviour:
   m_text: <color=#64748B>[ </color><color=#E2E8F0><cspace=3><b>NULL POINTER CHARACTER</b></cspace></color><color=#64748B>
     ]</color>
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1191,8 +1191,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: <color=#10B981><i>"Break the game. Survive the code."</i></color>
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1320,8 +1320,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "<cspace=2><b>\u25B6  PRESS ANY KEY OR CLICK TO INITIALIZE  \u25C0</b></cspace>"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1449,8 +1449,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: <color=#64748B>v0.8.2 // EVI ENGINE VERTICAL SLICE // NODE_04</color>
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
+  m_sharedMaterial: {fileID: -5633185765653872546, guid: d98b1e4ebeeb76f4b9dc8feb10172fbd, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4790,7 +4790,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 8fcb9118055595841b1316bd5d3112ca, type: 3}
+  m_Sprite: {fileID: 6850352397346096737, guid: 4c2eefecc15e71d4283e9c6178904fec, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
