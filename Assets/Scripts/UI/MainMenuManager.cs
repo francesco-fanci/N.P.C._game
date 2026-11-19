@@ -1,5 +1,5 @@
-// N.P.C. (Null Pointer Character) - Main Menu Manager v2.0
-// Gestisce: Splash -> Menu transition, modal panels, options, fade, audio, button juice.
+// N.P.C. (Null Pointer Character) - Main Menu Manager v2.1
+// Gestisce: Splash -> Menu transition, modal panels, scene fade, button juice.
 using System.Collections;
 using TMPro;
 using UnityEngine;
@@ -21,12 +21,6 @@ public class MainMenuManager : MonoBehaviour
     [Header("Modals")]
     [SerializeField] private GameObject _controlsModal;
     [SerializeField] private GameObject _aboutModal;
-    [SerializeField] private GameObject _optionsModal;
-
-    // --- OPTIONS CONTROLS ---------------------------------------------------
-    [Header("Options Controls")]
-    [SerializeField] private Slider _volumeSlider;
-    [SerializeField] private Toggle _fullscreenToggle;
 
     // --- FADE TRANSITIONS ---------------------------------------------------
     [Header("Fade Transitions")]
@@ -48,24 +42,19 @@ public class MainMenuManager : MonoBehaviour
     [Header("Scene Loading")]
     [SerializeField] private string _firstLevelSceneName = "Level01_BrokenVillage";
 
-    // --- AUDIO --------------------------------------------------------------
-    [Header("Audio")]
-    [SerializeField, Tooltip("AudioSource for UI SFX (hover, click).")]
-    private AudioSource _sfxSource;
-
-    [SerializeField] private AudioClip _hoverClip;
-    [SerializeField] private AudioClip _clickClip;
-
-    [SerializeField, Tooltip("AudioSource for background music.")]
-    private AudioSource _musicSource;
-
     // --- BUTTON JUICE -------------------------------------------------------
     [Header("Button Hover Scale")]
     [SerializeField, Range(1f, 1.15f)]
-    private float _hoverScale = 1.05f;
+    private float _hoverScale = 1.04f;
 
     [SerializeField, Range(0.01f, 0.2f)]
     private float _hoverAnimDuration = 0.08f;
+
+    // --- TERMINAL POLISH ----------------------------------------------------
+    [Header("Terminal Visuals")]
+    [SerializeField] private TextMeshProUGUI _menuSubtitleText;
+    private string _baseSubtitleText;
+    private Coroutine _cursorCoroutine;
 
     // --- FADE OVERLAY (for scene transition) --------------------------------
     [Header("Scene Transition Overlay")]
@@ -95,7 +84,6 @@ public class MainMenuManager : MonoBehaviour
         SetPanelActive(_menuPanel, false);
         SetPanelActive(_controlsModal, false);
         SetPanelActive(_aboutModal, false);
-        SetPanelActive(_optionsModal, false);
 
         // CanvasGroup init
         if (_splashCanvasGroup != null) _splashCanvasGroup.alpha = 1f;
@@ -106,23 +94,16 @@ public class MainMenuManager : MonoBehaviour
             _fadeOverlay.gameObject.SetActive(true);
         }
 
-        // Options init
-        if (_volumeSlider != null)
-        {
-            _volumeSlider.value = AudioListener.volume;
-            _volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
-        }
-
-        if (_fullscreenToggle != null)
-        {
-            _fullscreenToggle.isOn = Screen.fullScreen;
-            _fullscreenToggle.onValueChanged.AddListener(OnFullscreenToggled);
-        }
-
         // Splash pulse color
         if (_pressAnyKeyText != null)
         {
             _pulseBaseColor = _pressAnyKeyText.color;
+        }
+
+        // Cache base subtitle text
+        if (_menuSubtitleText != null)
+        {
+            _baseSubtitleText = _menuSubtitleText.text;
         }
 
         // Cursor
@@ -133,34 +114,20 @@ public class MainMenuManager : MonoBehaviour
         RegisterButtonEvents();
     }
 
-    private void OnDestroy()
-    {
-        // Cleanup listeners to avoid leaks
-        if (_volumeSlider != null)
-        {
-            _volumeSlider.onValueChanged.RemoveListener(OnVolumeChanged);
-        }
-
-        if (_fullscreenToggle != null)
-        {
-            _fullscreenToggle.onValueChanged.RemoveListener(OnFullscreenToggled);
-        }
-    }
-
     private void Update()
     {
         if (_inSplashState)
         {
             PulsePressAnyKey();
 
-            if (Time.time - _startTime > 0.3f && Input.anyKeyDown)
+            if (Time.time - _startTime > 0.1f && (Input.anyKeyDown || Input.GetMouseButtonDown(0)))
             {
                 TransitionToMenu();
             }
         }
         else
         {
-            HandleEscapeKey();
+            HandleMenuShortcuts();
         }
     }
 
@@ -183,6 +150,7 @@ public class MainMenuManager : MonoBehaviour
 
         SetPanelActive(_splashPanel, false);
         SetPanelActive(_menuPanel, true);
+        StartTerminalCursor();
 
         // Fade in menu
         yield return CO_FadeCanvasGroup(_menuCanvasGroup, 0f, 1f, _fadeDuration);
@@ -198,16 +166,12 @@ public class MainMenuManager : MonoBehaviour
     public void CloseControls() => CloseModal(_controlsModal);
     public void OpenAbout() => OpenModal(_aboutModal);
     public void CloseAbout() => CloseModal(_aboutModal);
-    public void OpenOptions() => OpenModal(_optionsModal);
-    public void CloseOptions() => CloseModal(_optionsModal);
 
     private void OpenModal(GameObject modal)
     {
         if (modal == null || _isTransitioning) return;
-        PlaySFX(_clickClip);
         modal.SetActive(true);
 
-        // Optional: fade in modal if it has a CanvasGroup
         var cg = modal.GetComponent<CanvasGroup>();
         if (cg != null)
         {
@@ -218,7 +182,6 @@ public class MainMenuManager : MonoBehaviour
     private void CloseModal(GameObject modal)
     {
         if (modal == null) return;
-        PlaySFX(_clickClip);
 
         var cg = modal.GetComponent<CanvasGroup>();
         if (cg != null)
@@ -239,13 +202,6 @@ public class MainMenuManager : MonoBehaviour
     }
 
     // ========================================================================
-    // OPTIONS CALLBACKS
-    // ========================================================================
-
-    public void OnVolumeChanged(float value) => AudioListener.volume = value;
-    public void OnFullscreenToggled(bool isOn) => Screen.fullScreen = isOn;
-
-    // ========================================================================
     // PLAY GAME (with fade-to-black)
     // ========================================================================
 
@@ -253,25 +209,11 @@ public class MainMenuManager : MonoBehaviour
     {
         if (_isLoadingScene) return;
         _isLoadingScene = true;
-        PlaySFX(_clickClip);
         StartCoroutine(CO_FadeAndLoadScene());
     }
 
     private IEnumerator CO_FadeAndLoadScene()
     {
-        // Fade music out (if present)
-        if (_musicSource != null)
-        {
-            float startVol = _musicSource.volume;
-            float elapsed = 0f;
-            while (elapsed < _sceneTransitionDuration)
-            {
-                elapsed += Time.deltaTime;
-                _musicSource.volume = Mathf.Lerp(startVol, 0f, elapsed / _sceneTransitionDuration);
-                yield return null;
-            }
-        }
-
         // Fade overlay to black
         yield return CO_FadeCanvasGroup(_fadeOverlay, 0f, 1f, _sceneTransitionDuration);
 
@@ -285,7 +227,6 @@ public class MainMenuManager : MonoBehaviour
 
     public void QuitGame()
     {
-        PlaySFX(_clickClip);
         Debug.Log("[MainMenu] Exiting application...");
         Application.Quit();
 #if UNITY_EDITOR
@@ -294,24 +235,67 @@ public class MainMenuManager : MonoBehaviour
     }
 
     // ========================================================================
-    // ESC KEY HANDLER
+    // MENU SHORTCUTS & NAVIGATION
     // ========================================================================
 
-    private void HandleEscapeKey()
+    private void HandleMenuShortcuts()
     {
-        if (!Input.GetKeyDown(KeyCode.Escape)) return;
+        if (_isLoadingScene || _isTransitioning) return;
 
-        if (_controlsModal != null && _controlsModal.activeSelf)
+        bool isModalOpen = (_controlsModal != null && _controlsModal.activeSelf) ||
+                           (_aboutModal != null && _aboutModal.activeSelf);
+
+        if (isModalOpen)
         {
-            CloseControls();
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (_controlsModal != null && _controlsModal.activeSelf) CloseControls();
+                else if (_aboutModal != null && _aboutModal.activeSelf) CloseAbout();
+            }
+            return;
         }
-        else if (_aboutModal != null && _aboutModal.activeSelf)
+
+        // Terminal hotkeys [01] - [04]
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
         {
-            CloseAbout();
+            PlayGame();
         }
-        else if (_optionsModal != null && _optionsModal.activeSelf)
+        else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
         {
-            CloseOptions();
+            OpenControls();
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3))
+        {
+            OpenAbout();
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4) || Input.GetKeyDown(KeyCode.Escape))
+        {
+            QuitGame();
+        }
+    }
+
+    private void StartTerminalCursor()
+    {
+        if (_cursorCoroutine != null) StopCoroutine(_cursorCoroutine);
+        if (_menuSubtitleText != null)
+        {
+            _cursorCoroutine = StartCoroutine(CO_TerminalCursor());
+        }
+    }
+
+    private IEnumerator CO_TerminalCursor()
+    {
+        bool cursorOn = false;
+        while (true)
+        {
+            cursorOn = !cursorOn;
+            if (_menuSubtitleText != null)
+            {
+                _menuSubtitleText.text = cursorOn
+                    ? _baseSubtitleText + " <color=#00F0FF>_</color>"
+                    : _baseSubtitleText + " <color=#00000000>_</color>";
+            }
+            yield return new WaitForSecondsRealtime(0.53f);
         }
     }
 
@@ -332,12 +316,15 @@ public class MainMenuManager : MonoBehaviour
     // BUTTON HOVER/CLICK JUICE
     // ========================================================================
 
+    // --- BUTTON SCALE COROUTINES -------------------------------------------
+    private readonly System.Collections.Generic.Dictionary<Transform, Coroutine> _scaleCoroutines 
+        = new System.Collections.Generic.Dictionary<Transform, Coroutine>();
+
     private void RegisterButtonEvents()
     {
         Button[] buttons = GetComponentsInChildren<Button>(true);
         foreach (Button btn in buttons)
         {
-            // Add EventTrigger for hover scale
             AddHoverEvent(btn.gameObject);
         }
     }
@@ -349,14 +336,15 @@ public class MainMenuManager : MonoBehaviour
         {
             trigger = btnGO.AddComponent<EventTrigger>();
         }
+        trigger.triggers.Clear();
 
-        // PointerEnter -> scale up + SFX
+        Transform t = btnGO.transform;
+
+        // PointerEnter -> scale up
         var entryEnter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
         entryEnter.callback.AddListener((_) =>
         {
-            StopCoroutine(nameof(CO_ScaleButton)); // prevent overlap
-            StartCoroutine(CO_ScaleButton(btnGO.transform, Vector3.one * _hoverScale, _hoverAnimDuration));
-            PlaySFX(_hoverClip);
+            StartButtonScale(t, Vector3.one * _hoverScale, _hoverAnimDuration);
         });
         trigger.triggers.Add(entryEnter);
 
@@ -364,7 +352,7 @@ public class MainMenuManager : MonoBehaviour
         var entryExit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
         entryExit.callback.AddListener((_) =>
         {
-            StartCoroutine(CO_ScaleButton(btnGO.transform, Vector3.one, _hoverAnimDuration));
+            StartButtonScale(t, Vector3.one, _hoverAnimDuration);
         });
         trigger.triggers.Add(entryExit);
 
@@ -372,9 +360,27 @@ public class MainMenuManager : MonoBehaviour
         var entryClick = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
         entryClick.callback.AddListener((_) =>
         {
-            StartCoroutine(CO_PunchScale(btnGO.transform));
+            StartButtonPunch(t);
         });
         trigger.triggers.Add(entryClick);
+    }
+
+    private void StartButtonScale(Transform t, Vector3 target, float duration)
+    {
+        if (_scaleCoroutines.TryGetValue(t, out Coroutine existing) && existing != null)
+        {
+            StopCoroutine(existing);
+        }
+        _scaleCoroutines[t] = StartCoroutine(CO_ScaleButton(t, target, duration));
+    }
+
+    private void StartButtonPunch(Transform t)
+    {
+        if (_scaleCoroutines.TryGetValue(t, out Coroutine existing) && existing != null)
+        {
+            StopCoroutine(existing);
+        }
+        _scaleCoroutines[t] = StartCoroutine(CO_PunchScale(t));
     }
 
     private IEnumerator CO_ScaleButton(Transform t, Vector3 target, float duration)
@@ -418,13 +424,5 @@ public class MainMenuManager : MonoBehaviour
     private void SetPanelActive(GameObject panel, bool active)
     {
         if (panel != null) panel.SetActive(active);
-    }
-
-    private void PlaySFX(AudioClip clip)
-    {
-        if (_sfxSource != null && clip != null)
-        {
-            _sfxSource.PlayOneShot(clip);
-        }
     }
 }
