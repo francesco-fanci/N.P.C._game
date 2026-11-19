@@ -1,7 +1,14 @@
 fileFormatVersion: 2
-guid: 787841c97e4d645afac28f74c6bdc5f6
+guid: cd31e0a9be71ecd45aa378cd6f7a4383
 PrefabImporter:
   externalObjects: {}
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308305
+  packageName: Low Poly Wooden Crate
+  packageVersion: 1.0
+  assetPath: Assets/Game Assets/Aegis77/Low Poly Wooden Crate/Prefabs/Wooden Crate.prefab
+  uploadId: 724913

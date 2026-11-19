@@ -149,7 +149,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClippingTrigger
   _wallCollider: {fileID: 0}
-  _requireKeyPress: 0
+  _requireKeyPress: 1
   _clipDuration: 2
   _glitchMaterial: {fileID: 2100000, guid: 4d07cc4a02ddf45b4818d6a7f6e09d71, type: 2}
 --- !u!1 &7558314313215930859
