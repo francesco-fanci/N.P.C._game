@@ -85,6 +85,15 @@ public class HUDManager : MonoBehaviour
     [SerializeField, Tooltip("Optional sub-panel displaying keyboard controls & exploit guide.")]
     private GameObject _controlsSubPanel;
 
+    [Header("Prologue Intro Modal")]
+    [SerializeField, Tooltip("Modal window shown on level start to introduce world lore.")]
+    private GameObject _prologueModal;
+
+    [SerializeField, Tooltip("Show the prologue intro modal on first start.")]
+    private bool _showPrologueOnStart = true;
+
+    private static bool _hasShownPrologueThisSession = false;
+
     private bool _isPaused = false;
     private const string DefaultPrompt = "[E] Duplicate Crate / Exploit";
 
@@ -137,10 +146,26 @@ public class HUDManager : MonoBehaviour
         {
             SetObjective("PROTOCOL 01: Find an exploit to bypass village perimeter before server wipe.");
         }
+
+        if (_showPrologueOnStart && _prologueModal != null && !_hasShownPrologueThisSession)
+        {
+            _hasShownPrologueThisSession = true;
+            StartCoroutine(CO_ShowPrologueDelayed());
+        }
     }
 
     private void Update()
     {
+        if (_prologueModal != null && _prologueModal.activeSelf)
+        {
+            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Return) ||
+                Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space))
+            {
+                ClosePrologue();
+            }
+            return;
+        }
+
         UpdateCountdownDisplay();
 
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -385,6 +410,7 @@ public class HUDManager : MonoBehaviour
 
     public void ReturnToMainMenu()
     {
+        _hasShownPrologueThisSession = false;
         Time.timeScale = 1f;
         UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
     }
@@ -395,5 +421,35 @@ public class HUDManager : MonoBehaviour
         {
             _controlsSubPanel.SetActive(!_controlsSubPanel.activeSelf);
         }
+    }
+
+    // --- Prologue Modal ---
+
+    private System.Collections.IEnumerator CO_ShowPrologueDelayed()
+    {
+        yield return new WaitForEndOfFrame();
+        ShowPrologue();
+    }
+
+    public void ShowPrologue()
+    {
+        if (_prologueModal != null)
+        {
+            _prologueModal.SetActive(true);
+            Time.timeScale = 0f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+    }
+
+    public void ClosePrologue()
+    {
+        if (_prologueModal != null)
+        {
+            _prologueModal.SetActive(false);
+        }
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 }

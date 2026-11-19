@@ -1,6 +1,7 @@
-// N.P.C. (Null Pointer Character) - Main Menu Manager v2.1
-// Gestisce: Splash -> Menu transition, modal panels, scene fade, button juice.
+// N.P.C. (Null Pointer Character) - Main Menu Manager v2.2
+// Manages: Splash -> Menu transition, modal panels (Controls, About, Credits), scene fade, button juice.
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -21,6 +22,8 @@ public class MainMenuManager : MonoBehaviour
     [Header("Modals")]
     [SerializeField] private GameObject _controlsModal;
     [SerializeField] private GameObject _aboutModal;
+    [SerializeField, Tooltip("Dedicated modal panel for Credits. If left unassigned, falls back to About modal.")]
+    private GameObject _creditsModal;
 
     // --- FADE TRANSITIONS ---------------------------------------------------
     [Header("Fade Transitions")]
@@ -37,6 +40,8 @@ public class MainMenuManager : MonoBehaviour
     [Header("Splash Screen")]
     [SerializeField] private TextMeshProUGUI _pressAnyKeyText;
     [SerializeField] private float _pulseSpeed = 3.5f;
+    [SerializeField, Range(2f, 10f), Tooltip("Seconds before automatically advancing to the main menu if no key is pressed.")]
+    private float _splashAutoAdvanceDelay = 4.0f;
 
     // --- SCENE LOADING ------------------------------------------------------
     [Header("Scene Loading")]
@@ -71,6 +76,10 @@ public class MainMenuManager : MonoBehaviour
     private Color _pulseBaseColor;
     private float _startTime;
 
+    // --- BUTTON SCALE COROUTINES -------------------------------------------
+    private readonly Dictionary<Transform, Coroutine> _scaleCoroutines
+        = new Dictionary<Transform, Coroutine>();
+
     // ========================================================================
     // LIFECYCLE
     // ========================================================================
@@ -84,6 +93,10 @@ public class MainMenuManager : MonoBehaviour
         SetPanelActive(_menuPanel, false);
         SetPanelActive(_controlsModal, false);
         SetPanelActive(_aboutModal, false);
+        if (_creditsModal != null && _creditsModal != _aboutModal)
+        {
+            SetPanelActive(_creditsModal, false);
+        }
 
         // CanvasGroup init
         if (_splashCanvasGroup != null) _splashCanvasGroup.alpha = 1f;
@@ -120,7 +133,11 @@ public class MainMenuManager : MonoBehaviour
         {
             PulsePressAnyKey();
 
-            if (Time.time - _startTime > 0.1f && (Input.anyKeyDown || Input.GetMouseButtonDown(0)))
+            float elapsed = Time.time - _startTime;
+
+            // Advance if user presses any key/click OR if timer expires without input
+            if ((elapsed > 0.1f && (Input.anyKeyDown || Input.GetMouseButtonDown(0))) ||
+                (elapsed >= _splashAutoAdvanceDelay))
             {
                 TransitionToMenu();
             }
@@ -162,19 +179,34 @@ public class MainMenuManager : MonoBehaviour
     // MODAL MANAGEMENT
     // ========================================================================
 
+    private GameObject EffectiveCreditsModal => _creditsModal != null ? _creditsModal : _aboutModal;
+
     public void OpenControls() => OpenModal(_controlsModal);
     public void CloseControls() => CloseModal(_controlsModal);
+
     public void OpenAbout() => OpenModal(_aboutModal);
     public void CloseAbout() => CloseModal(_aboutModal);
+
+    public void OpenCredits() => OpenModal(EffectiveCreditsModal);
+    public void CloseCredits() => CloseModal(EffectiveCreditsModal);
 
     private void OpenModal(GameObject modal)
     {
         if (modal == null || _isTransitioning) return;
         modal.SetActive(true);
 
+        // Reset vertical scroll position to top whenever a modal opens
+        ScrollRect[] scrollRects = modal.GetComponentsInChildren<ScrollRect>(true);
+        foreach (ScrollRect sr in scrollRects)
+        {
+            sr.verticalNormalizedPosition = 1f;
+            sr.horizontalNormalizedPosition = 0f;
+        }
+
         var cg = modal.GetComponent<CanvasGroup>();
         if (cg != null)
         {
+            cg.alpha = 0f;
             StartCoroutine(CO_FadeCanvasGroup(cg, 0f, 1f, _fadeDuration * 0.5f));
         }
     }
@@ -242,14 +274,17 @@ public class MainMenuManager : MonoBehaviour
     {
         if (_isLoadingScene || _isTransitioning) return;
 
+        GameObject creditsTarget = EffectiveCreditsModal;
         bool isModalOpen = (_controlsModal != null && _controlsModal.activeSelf) ||
-                           (_aboutModal != null && _aboutModal.activeSelf);
+                           (_aboutModal != null && _aboutModal.activeSelf) ||
+                           (creditsTarget != null && creditsTarget.activeSelf);
 
         if (isModalOpen)
         {
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 if (_controlsModal != null && _controlsModal.activeSelf) CloseControls();
+                else if (creditsTarget != null && creditsTarget.activeSelf && creditsTarget != _aboutModal) CloseCredits();
                 else if (_aboutModal != null && _aboutModal.activeSelf) CloseAbout();
             }
             return;
@@ -315,10 +350,6 @@ public class MainMenuManager : MonoBehaviour
     // ========================================================================
     // BUTTON HOVER/CLICK JUICE
     // ========================================================================
-
-    // --- BUTTON SCALE COROUTINES -------------------------------------------
-    private readonly System.Collections.Generic.Dictionary<Transform, Coroutine> _scaleCoroutines 
-        = new System.Collections.Generic.Dictionary<Transform, Coroutine>();
 
     private void RegisterButtonEvents()
     {

@@ -28,9 +28,12 @@ public class GarbageCollectorDetector : MonoBehaviour
         if (_fsm == null) return;
 
         // Only react to the player entering the detection zone
-        if (other.CompareTag("Player") || other.GetComponent<PlayerController>() != null)
+        PlayerController pc = other.GetComponent<PlayerController>();
+        if (pc == null) pc = other.GetComponentInParent<PlayerController>();
+
+        if (other.CompareTag("Player") || pc != null)
         {
-            _fsm.OnPlayerDetected(other.gameObject);
+            _fsm.OnPlayerDetected(pc != null ? pc.gameObject : other.gameObject);
         }
     }
 }
